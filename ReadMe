@@ -1,0 +1,171 @@
+Automated Vulnerability Scanner
+Diego Carvajal
+5/17/2025
+
+Summary documentation: 
+
+Automated Vulnerability Scanner Using Nmap possesing CVE matching. 
+Script will automate the vulnerabilityscanning process by:
+1. Running Nmap scan to identify services and versions
+2. Matching found services against ExploitDB as well as NVD databases
+3. Providing prioritized vulnerability information
+
+Full breakdown of important features added:
+Nmap Integration:
+    Runs different types of Nmap scans (discovery, full, vulnerability)
+    
+    Parses XML output to extract service information
+
+Vulnerability Matching:
+
+    Queries NVD API for CVEs matching found services
+
+    Searches ExploitDB for known exploits
+
+    Prioritizes by CVSS severity scores
+
+Reporting:
+
+    Generates detailed reports in JSON or text format
+
+    Includes CVE details, severity scores, and references
+
+    Lists available exploits from ExploitDB
+
+Interactive Interface:
+
+    Easy-to-use menu system
+
+    Configurable scan types
+
+    Real-time progress feedback
+
+Needed for running: 
+    Python 3.x
+    Nmap installed and in path
+    ExploitDB
+    requests library (pip install requests)
+
+Use: 
+    Save script as vuln_scannr.py
+    Make executable using cmd: chmod x vuln_scanner.py
+    run ./vuln_scanner.py or python3 vuln_scanner.py
+
+
+Full Documentation: 
+
+Overview: The Automated Vulnerability Scanner is a Python-based tool that combines Nmap scanning, CVE database lookups, and exploit matching to identify security weaknesses in target systems. It automates the initial phases of penetration testing by:
+1. Discovering open ports and services
+2. Matching services against known vulnerabilities (CVEs)
+3. Identifying available exploits (via ExploitDB)
+4. Generating structured reports
+
+    The core architecture of this scanner consists of 5 main components:
+        Nmap scanner: responsible for discovering hosts, services, and versions of target network.
+
+        CVE matcher: Queries the NVD (National vulnerability Database) for known vulnerabilities.
+
+        ExploitDB Lookup: Responsible for searching for publicily available exploits and matching services. 
+
+        Report Generation: Will create a readable report of findings
+
+        Interactive CLI: Provides user-friendly control over the scanning process
+
+How it works: 
+    A. Nmap tool starts by running an Nmap scan on the target(IP/hostname). The scanner supports three scan types:
+    
+    Scan type       Command Used                Purpose
+    Discovery |	nmap -sV -O --top-ports 100	 |Fast scan of common ports
+    Full	      | nmap -sV -O -p-	         |Checks all 65,535 ports
+    Vulnerability |nmap -sV --script vulners |Runs NSE scripts for know vuln
+
+    Example output: 
+    {
+    "target": "192.168.1.1",
+    "ports": [
+        {
+        "port": 80,
+        "service": "http",
+        "version": "Apache 2.4.49",
+        "cpe": "cpe:/a:apache:http_server:2.4.49"
+        }
+    ]
+    }
+
+B. CVE Lookup (NVD API):
+    This tool will queriy the National Vulnerrability Database (NVD) to find CVEs matching the detected services.
+        Process:
+            1. Extracts software name & version (e.g., Apache 2.4.49)
+            2. Searches NVD API for related vulnerabilities.
+            3. Returns CVE-ID, severity, and references.
+    Example API query:
+    requests.get("https://services.nvd.nist.gov/rest/json/cves/1.0", params={
+        "keyword": "Apache 2.4.49"
+    })
+    Example output:
+    {
+    "id": "CVE-2021-41773",
+    "severity": "HIGH",
+    "score": 7.5,
+    "description": "Path traversal vulnerability in Apache 2.4.49..."
+    }
+
+C. ExploitDB matching:
+    The tool checks ExploitDB (files_exploits.csv) for known exploits.
+
+    Example Search: 
+    if "Apache 2.4.49" in exploit_description:
+    return {
+        "id": "49742",
+        "file": "exploits/unix/webapps/49742.py",
+        "description": "Apache 2.4.49 Path Traversal Exploit"
+    }
+
+D. Report Generation:
+    Findings of the tool are compiled into json or text reports for versatility in use. 
+
+    JSON report example:
+    {
+    "target": "192.168.1.1",
+    "vulnerabilities": [
+            {
+            "service": "Apache 2.4.49",
+            "cves": [{"id": "CVE-2021-41773", "severity": "HIGH"}],
+            "exploits": [{"id": "49742", "path": "/usr/share/exploitdb/exploits/..."}]
+            }
+        ]
+    }
+    
+    Text Example: 
+
+    === Vulnerabilities Found ===
+    Service: Apache 2.4.49
+    - CVE-2021-41773 (HIGH, CVSS 7.5)
+    Description: Path traversal vulnerability...
+    Exploit: #49742 (Path Traversal RCE)
+
+Usage guide:
+
+    Running the scanner:
+
+        use command: python3 vuln_scanner.py
+
+        follow prompts to: 
+        1. Enter target (ex. 192.168.1.1)
+        2. Select scan type (discovery, full, vuln)
+        3. Choose output format (JSON or text)
+
+Dependencies: 
+
+    Tool/Library	Purpose	             Installation
+    Nmap	   |    Port scanning    |	sudo apt install nmap
+    ExploitDB  |	Local exploit db |	sudo apt install exploitdb
+    Py Requests|	NVD API queries	 |  pip install requests
+
+Limitations & potential future updates
+1. Currently has slow NVD api queries, to remedy can usea local CVE database or get own NVD api key. 
+2. No exploit veritifaction, in futrue can integrate metasploit for more affermative vulnerability testing.
+3, Basic service detection, can integrate WhatWeb or TestSSL for better finegrprinting, right now Nmap identifies services like Apache httpd or openSSH but will miss otherthings like api endpoints or web frameworks. 
+
+
+
